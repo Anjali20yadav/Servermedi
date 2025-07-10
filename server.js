@@ -13,13 +13,17 @@ const app = express();
 
 connectDB();
 
+
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://healsync-frontend-ec4u.vercel.app'
++   'https://healsync-frontend.vercel.app'
   ],
   credentials: true
 }));
+
+
+
 
 app.use(express.json());
 
