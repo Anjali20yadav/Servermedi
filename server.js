@@ -14,12 +14,11 @@ const app = express();
 connectDB();
 
 
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-+   'https://healsync-frontend.vercel.app'
-  ],
-  credentials: true
+  origin: '*', // 🔓 Temporarily allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 
