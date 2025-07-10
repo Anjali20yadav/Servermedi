@@ -16,10 +16,12 @@ connectDB();
 
 
 app.use(cors({
-  origin: '*', // 🔓 Temporarily allow all origins
+  origin: ['https://healsync-frontend.vercel.app'],
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
 
 
 
