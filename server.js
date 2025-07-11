@@ -3,42 +3,35 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-require('./reminderScheduler');
+require('./reminderScheduler'); // 🕒 email cron setup
 
 const authMiddleware = require('./middleware/authMiddleware');
 
-console.log("🔍 MONGO_URI:", process.env.MONGO_URI);
-
 const app = express();
 
+// Connect to MongoDB
 connectDB();
 
 
-
+// 👈 For local dev, allow all origins
 app.use(cors({
-  origin: [
-  'https://healsync-jet.vercel.app',
-  'http://localhost:5173'
-],
+  origin: 'http://localhost:5173',  // frontend ka local URL
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-
-
-
-
 
 app.use(express.json());
 
+// Test route
 app.get('/', (req, res) => {
-  res.send('🚀 Backend is running!');
+  res.send('✅ Backend running locally!');
 });
 
+// Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/medicine', authMiddleware, require('./routes/medicine'));
 
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Server running on ${PORT}`);
 });
