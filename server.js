@@ -4,7 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 require('./reminderScheduler'); // 🕒 email cron setup
-
 const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
@@ -12,10 +11,20 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
+// ✅ Allowed origins for CORS
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://meditrack-rust.vercel.app' // your Vercel frontend URL
+];
 
-// 👈 For local dev, allow all origins
 app.use(cors({
-  origin: 'http://localhost:5173',  // frontend ka local URL
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 
