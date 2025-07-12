@@ -10,12 +10,19 @@ router.post('/', auth, async (req, res) => {
     const { name, dosage, time, date, duration, notes } = req.body;
 
     // Combine date and time into full Date object
-    const [hours, minutes] = time.split(':');
-    const scheduledTime = new Date(date);
-    scheduledTime.setHours(parseInt(hours));
-    scheduledTime.setMinutes(parseInt(minutes));
-    scheduledTime.setSeconds(0);
-    scheduledTime.setMilliseconds(0);
+    // const [hours, minutes] = time.split(':').map(Number);
+    // const scheduledTime = new Date(date);
+    // scheduledTime.setHours(parseInt(hours));
+    // scheduledTime.setMinutes(parseInt(minutes));
+    // scheduledTime.setSeconds(0);
+    // scheduledTime.setMilliseconds(0);
+
+    const [hours, minutes] = time.split(':').map(Number);
+const localDateTime = new Date(`${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
+
+// Convert IST (UTC+5:30) to UTC
+const scheduledTime = new Date(localDateTime.getTime() - 5.5 * 60 * 60 * 1000);
+
 
     const now = new Date();
     const diffMinutes = (scheduledTime - now) / 1000 / 60;
@@ -63,11 +70,15 @@ router.put('/:id', auth, async (req, res) => {
     const updatedFields = { name, dosage, time, date, duration, notes };
 
     if (date && time) {
-      const [hours, minutes] = time.split(':');
-      const scheduledTime = new Date(date);
-      scheduledTime.setHours(parseInt(hours));
-      scheduledTime.setMinutes(parseInt(minutes));
-      scheduledTime.setSeconds(0);
+      // const [hours, minutes] = time.split(':');
+      // const scheduledTime = new Date(date);
+      // scheduledTime.setHours(parseInt(hours));
+      // scheduledTime.setMinutes(parseInt(minutes));
+      // scheduledTime.setSeconds(0);
+      const [hours, minutes] = time.split(':').map(Number);
+const localDateTime = new Date(`${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
+const scheduledTime = new Date(localDateTime.getTime() - 5.5 * 60 * 60 * 1000);
+
       updatedFields.scheduledTime = scheduledTime;
     }
 
