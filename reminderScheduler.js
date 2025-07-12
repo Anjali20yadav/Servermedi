@@ -9,11 +9,11 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected for Scheduler'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
-cron.schedule('*/1 * * * *', async () => {  // run every 1 min to catch exact time
+cron.schedule('*/1 * * * *', async () => {
   console.log("🔔 Running reminder check...");
 
   const now = new Date();
-  const nowDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const nowDateStr = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
   const nowHours = now.getHours();
   const nowMinutes = now.getMinutes();
 
@@ -22,33 +22,41 @@ cron.schedule('*/1 * * * *', async () => {  // run every 1 min to catch exact ti
     console.log(`Fetched ${medicines.length} medicines from DB`);
 
     for (let med of medicines) {
-      if (!med.scheduledTime) {
-        console.warn(`⚠️ Medicine ${med.name} has no scheduledTime set, skipping...`);
+      if (!med.time) {
+        console.warn(`⚠️ Medicine ${med.name} has no time set, skipping...`);
         continue;
       }
 
-      const scheduledDateObj = new Date(med.scheduledTime);
-      if (isNaN(scheduledDateObj)) {
-        console.warn(`⚠️ Medicine ${med.name} has invalid scheduledTime, skipping...`);
+      // Parse med.time (string "HH:mm")
+      const [hoursStr, minutesStr] = med.time.split(':');
+      const reminderHours = parseInt(hoursStr, 10);
+      const reminderMinutes = parseInt(minutesStr, 10);
+
+      if (isNaN(reminderHours) || isNaN(reminderMinutes)) {
+        console.warn(`⚠️ Medicine ${med.name} has invalid time format, skipping...`);
         continue;
       }
 
       // Check if current date is within duration
       const startDate = new Date(med.date);
-      startDate.setHours(0,0,0,0);
+      startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + med.duration - 1);
-      endDate.setHours(23,59,59,999);
+      endDate.setHours(23, 59, 59, 999);
 
       if (now < startDate || now > endDate) {
         console.log(`Skipping ${med.name} as today is outside duration.`);
         continue;
       }
 
-      // Compose today's scheduledTime with today's date + scheduledTime's time part
-      const scheduledTimeToday = new Date(`${nowDateStr}T${scheduledDateObj.toTimeString().slice(0,8)}`);
+      // Compose reminder datetime for today using med.time
+      const reminderDateTime = new Date(nowDateStr);
+      reminderDateTime.setHours(reminderHours, reminderMinutes, 0, 0);
 
-      if (scheduledTimeToday.getHours() === nowHours && scheduledTimeToday.getMinutes() === nowMinutes) {
+      // 🔍 Log current time vs reminder time
+      console.log("🕓 Current Time:", now.toTimeString().slice(0, 5), "⏰ Reminder Time:", reminderDateTime.toTimeString().slice(0, 5));
+
+      if (reminderDateTime.getHours() === nowHours && reminderDateTime.getMinutes() === nowMinutes) {
         // Check lastNotified to avoid duplicate email on same day
         if (med.lastNotified) {
           const lastNotifiedDateStr = new Date(med.lastNotified).toISOString().split('T')[0];
@@ -58,7 +66,7 @@ cron.schedule('*/1 * * * *', async () => {  // run every 1 min to catch exact ti
           }
         }
 
-        console.log(`Sending email reminder for medicine ${med.name}...`);
+        console.log(`📨 Sending email reminder for medicine ${med.name}...`);
 
         const user = await User.findById(med.user);
         if (!user || !user.email) {
@@ -69,7 +77,7 @@ cron.schedule('*/1 * * * *', async () => {  // run every 1 min to catch exact ti
         await sendEmail(
           user.email,
           `💊 Medicine Reminder: ${med.name}`,
-          `Hello ${user.name},\n\nThis is your reminder to take ${med.name} (${med.dosage}) at ${scheduledTimeToday.toLocaleTimeString()}.\n\nStay healthy!\nHealsync`
+          `Hello ${user.name},\n\nThis is your reminder to take ${med.name} (${med.dosage}) at ${reminderDateTime.toLocaleTimeString()}.\n\nStay healthy!\nHealsync`
         );
 
         med.lastNotified = now;

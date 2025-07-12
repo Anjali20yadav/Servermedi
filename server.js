@@ -13,8 +13,8 @@ connectDB();
 
 // ✅ Allowed origins for CORS
 const allowedOrigins = [
-  'http://localhost:5173',
-  'https://meditrack-rust.vercel.app' // your Vercel frontend URL
+  'http://localhost:5173'
+   // your Vercel frontend URL
 ];
 
 app.use(cors({
@@ -22,6 +22,11 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      app.use((req, res, next) => {
+  console.log('Origin:', req.headers.origin);
+  next();
+});
+
       callback(new Error('Not allowed by CORS'));
     }
   },
