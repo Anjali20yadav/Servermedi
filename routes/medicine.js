@@ -9,23 +9,15 @@ router.post('/', auth, async (req, res) => {
   try {
     const { name, dosage, time, date, duration, notes } = req.body;
 
-    // Combine date and time into full Date object
-    // const [hours, minutes] = time.split(':').map(Number);
-    // const scheduledTime = new Date(date);
-    // scheduledTime.setHours(parseInt(hours));
-    // scheduledTime.setMinutes(parseInt(minutes));
-    // scheduledTime.setSeconds(0);
-    // scheduledTime.setMilliseconds(0);
-
+    // Parse user input (IST) and convert to UTC
     const [hours, minutes] = time.split(':').map(Number);
-const localDateTime = new Date(`${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
+    // Create a Date in IST
+    const istDateTime = new Date(`${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00+05:30`);
+    // Convert IST Date to UTC (Date object stores as UTC)
+    const scheduledTimeUTC = new Date(istDateTime.toISOString());
 
-// Convert IST (UTC+5:30) to UTC
-const scheduledTime = new Date(localDateTime.getTime() - 5.5 * 60 * 60 * 1000);
-
-
-    const now = new Date();
-    const diffMinutes = (scheduledTime - now) / 1000 / 60;
+    const nowUTC = new Date();
+    const diffMinutes = (scheduledTimeUTC - nowUTC) / 1000 / 60;
 
     if (diffMinutes < 1) {
       return res.status(400).json({ msg: 'Scheduled time must be at least 1 minute after current time.' });
@@ -39,7 +31,7 @@ const scheduledTime = new Date(localDateTime.getTime() - 5.5 * 60 * 60 * 1000);
       date,
       duration,
       notes,
-      scheduledTime
+      scheduledTime: scheduledTimeUTC
     });
 
     const savedMedicine = await newMedicine.save();
@@ -70,16 +62,10 @@ router.put('/:id', auth, async (req, res) => {
     const updatedFields = { name, dosage, time, date, duration, notes };
 
     if (date && time) {
-      // const [hours, minutes] = time.split(':');
-      // const scheduledTime = new Date(date);
-      // scheduledTime.setHours(parseInt(hours));
-      // scheduledTime.setMinutes(parseInt(minutes));
-      // scheduledTime.setSeconds(0);
       const [hours, minutes] = time.split(':').map(Number);
-const localDateTime = new Date(`${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
-const scheduledTime = new Date(localDateTime.getTime() - 5.5 * 60 * 60 * 1000);
-
-      updatedFields.scheduledTime = scheduledTime;
+      const istDateTime = new Date(`${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00+05:30`);
+      const scheduledTimeUTC = new Date(istDateTime.toISOString());
+      updatedFields.scheduledTime = scheduledTimeUTC;
     }
 
     const updatedReminder = await Medicine.findOneAndUpdate(

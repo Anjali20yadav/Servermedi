@@ -12,10 +12,12 @@ mongoose.connect(process.env.MONGO_URI)
 cron.schedule('*/1 * * * *', async () => {
   console.log("🔔 Running reminder check...");
 
+  // Robust IST calculation
   const now = new Date();
-  const nowDateStr = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
-  const nowHours = now.getHours();
-  const nowMinutes = now.getMinutes();
+  const nowIST = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const nowDateStr = nowIST.toISOString().split('T')[0]; // "YYYY-MM-DD"
+  const nowHours = nowIST.getHours();
+  const nowMinutes = nowIST.getMinutes();
 
   try {
     const medicines = await Medicine.find({});
@@ -37,29 +39,31 @@ cron.schedule('*/1 * * * *', async () => {
         continue;
       }
 
-      // Check if current date is within duration
+      // Check if current date is within duration (using IST)
       const startDate = new Date(med.date);
       startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + med.duration - 1);
       endDate.setHours(23, 59, 59, 999);
 
-      if (now < startDate || now > endDate) {
+      if (nowIST < startDate || nowIST > endDate) {
         console.log(`Skipping ${med.name} as today is outside duration.`);
         continue;
       }
 
-      // Compose reminder datetime for today using med.time
+      // Compose reminder datetime for today using med.time (in IST)
       const reminderDateTime = new Date(nowDateStr);
       reminderDateTime.setHours(reminderHours, reminderMinutes, 0, 0);
 
       // 🔍 Log current time vs reminder time
-      console.log("🕓 Current Time:", now.toTimeString().slice(0, 5), "⏰ Reminder Time:", reminderDateTime.toTimeString().slice(0, 5));
+      console.log("🕓 Current IST Time:", nowIST.toTimeString().slice(0, 5), "⏰ Reminder Time:", reminderDateTime.toTimeString().slice(0, 5));
 
       if (reminderDateTime.getHours() === nowHours && reminderDateTime.getMinutes() === nowMinutes) {
         // Check lastNotified to avoid duplicate email on same day
         if (med.lastNotified) {
-          const lastNotifiedDateStr = new Date(med.lastNotified).toISOString().split('T')[0];
+          // Convert lastNotified to IST for comparison
+          const lastNotifiedIST = new Date(new Date(med.lastNotified).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+          const lastNotifiedDateStr = lastNotifiedIST.toISOString().split('T')[0];
           if (lastNotifiedDateStr === nowDateStr) {
             console.log(`Already notified today for ${med.name}, skipping.`);
             continue;
@@ -77,10 +81,10 @@ cron.schedule('*/1 * * * *', async () => {
         await sendEmail(
           user.email,
           `💊 Medicine Reminder: ${med.name}`,
-          `Hello ${user.name},\n\nThis is your reminder to take ${med.name} (${med.dosage}) at ${reminderDateTime.toLocaleTimeString()}.\n\nStay healthy!\nHealsync`
+          `Hello ${user.name},\n\nThis is your reminder to take ${med.name} (${med.dosage}) at ${reminderDateTime.toLocaleTimeString()} (IST).\n\nStay healthy!\nHealsync`
         );
 
-        med.lastNotified = now;
+        med.lastNotified = nowIST;
         await med.save();
 
         console.log(`📧 Reminder sent and lastNotified updated for ${med.name}`);
