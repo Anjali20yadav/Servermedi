@@ -13,9 +13,9 @@ connectDB();
 
 // ✅ Allowed origins for CORS
 const allowedOrigins = [
-  'http://localhost:5173'
-   
-   
+  'http://localhost:5173', // local dev
+  'https://meditrack-eight.vercel.app', // deployed frontend
+  'https://servermedi.onrender.com' // deployed backend (for server-to-server or health checks)
 ];
 
 app.use(cors({
